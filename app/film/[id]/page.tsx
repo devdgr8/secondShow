@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Theater } from "@/components/Theater";
+import { archivePage } from "@/lib/archive-urls";
 import { isAdmin } from "@/lib/auth";
 import { getFilm } from "@/lib/catalog";
 import { runtime } from "@/lib/format";
@@ -24,7 +25,7 @@ export default async function FilmPage({ params }: Props) {
 
   return (
     <main className="film-page">
-      <Theater id={film.id} title={film.title} poster={film.hasPoster} />
+      <Theater id={film.id} title={film.title} files={film.files} />
       <section className="film-notes">
         <div>
           {film.status !== "live" && <p className="pending-flag">Waiting for review</p>}
@@ -38,9 +39,12 @@ export default async function FilmPage({ params }: Props) {
         <aside className={`stub stub-tall stub-${film.license}`}>
           <small>Admit one · Free</small>
           <strong>{LICENSES[film.license]}</strong>
+          <a href={archivePage(film.id)} rel="noopener" target="_blank">
+            Hosted on Internet Archive
+          </a>
           {film.sourceUrl && (
             <a href={film.sourceUrl} rel="noopener nofollow ugc" target="_blank">
-              Source
+              Rights source
             </a>
           )}
           {film.submittedBy && <span>Submitted by {film.submittedBy}</span>}

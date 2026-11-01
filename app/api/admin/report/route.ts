@@ -4,10 +4,10 @@ import { deleteReport } from "@/lib/catalog";
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-  const { key } = await request.json().catch(() => ({}));
-  if (typeof key !== "string" || !key.startsWith("reports/")) {
+  const { id } = await request.json().catch(() => ({}));
+  if (typeof id !== "string" || !/^[\w-]+$/.test(id)) {
     return NextResponse.json({ error: "Bad report." }, { status: 400 });
   }
-  await deleteReport(key);
+  await deleteReport(id);
   return NextResponse.json({ ok: true });
 }

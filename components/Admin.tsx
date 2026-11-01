@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { bytes, runtime } from "@/lib/format";
+import { archivePage } from "@/lib/archive-urls";
+import { runtime } from "@/lib/format";
 import { LICENSES, type Film, type Report } from "@/lib/types";
-import { api } from "@/lib/upload-client";
+import { api } from "@/lib/api";
 
 export function AdminLogin() {
   const router = useRouter();
@@ -50,13 +51,9 @@ export function AdminLogin() {
 export function AdminPanel({
   films,
   reports,
-  usedBytes,
-  totalBytes,
 }: {
   films: Film[];
   reports: Report[];
-  usedBytes: number;
-  totalBytes: number;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -78,9 +75,9 @@ export function AdminPanel({
     }
   };
 
-  const dismiss = async (key: string) => {
-    setBusy(key);
-    await api("/api/admin/report", { key }).catch((failure) => setError(failure.message));
+  const dismiss = async (id: string) => {
+    setBusy(id);
+    await api("/api/admin/report", { id }).catch((failure) => setError(failure.message));
     setBusy("");
     router.refresh();
   };
@@ -92,17 +89,19 @@ export function AdminPanel({
 
   const pending = films.filter((film) => film.status === "pending");
   const live = films.filter((film) => film.status === "live");
-  const used = Math.min(100, (usedBytes / totalBytes) * 100);
 
   const row = (film: Film) => (
     <li key={film.id} className="admin-row">
       <div>
         <Link href={`/film/${film.id}`}>{film.title}</Link>
         <small>
-          {[bytes(film.size), runtime(film.runtimeSec), LICENSES[film.license], film.submittedBy]
+          {[runtime(film.runtimeSec), LICENSES[film.license], film.submittedBy]
             .filter(Boolean)
             .join(" · ")}
         </small>
+        <a href={archivePage(film.id)} target="_blank" rel="noopener noreferrer">
+          {archivePage(film.id)}
+        </a>
         {film.sourceUrl && (
           <a href={film.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
             {film.sourceUrl}
@@ -128,17 +127,9 @@ export function AdminPanel({
 
   return (
     <>
-      <div className="gauge">
-        <p className="booth-log">
-          {bytes(usedBytes)} of {bytes(totalBytes)} used
-        </p>
-        <div className="strip">
-          <span style={{ width: `${used}%` }} />
-        </div>
-      </div>
       <p className="admin-links">
         <Link href="/submit" className="button">
-          Upload a film
+          Add a film
         </Link>
         <button className="button-quiet" onClick={signOut}>
           Sign out
@@ -153,7 +144,7 @@ export function AdminPanel({
       {reports.length ? (
         <ul className="admin-list">
           {reports.map((report) => (
-            <li key={report.key} className="admin-row">
+            <li key={report.id} className="admin-row">
               <div>
                 <strong>{report.film}</strong>
                 <small>
@@ -162,7 +153,7 @@ export function AdminPanel({
                 <p>{report.claim}</p>
               </div>
               <div className="admin-actions">
-                <button disabled={busy === report.key} onClick={() => dismiss(report.key)}>
+                <button disabled={busy === report.id} onClick={() => dismiss(report.id)}>
                   Close report
                 </button>
               </div>

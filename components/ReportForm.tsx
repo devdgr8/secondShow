@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/upload-client";
+import { api } from "@/lib/api";
 
 export function ReportForm({ film }: { film: string }) {
   const [form, setForm] = useState({ film, name: "", email: "", claim: "" });

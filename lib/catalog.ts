@@ -1,97 +1,57 @@
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
+import { randomBytes } from "node:crypto";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isStorageConfigured } from "./config";
-import { bucket, r2 } from "./r2";
+import { readAll, remove, writeJson } from "./store";
 import { GENRES, LICENSES, type Film, type FilmDetails, type License, type Report } from "./types";
 
-const TAG = "catalog";
+const FILMS = "catalog-films";
+const REPORTS = "catalog-reports";
+const DAY = 60 * 60 * 24;
 
-export const filmPrefix = (id: string) => `movies/${id}/`;
-const metaKey = (id: string) => `${filmPrefix(id)}meta.json`;
-export const posterKey = (id: string) => `${filmPrefix(id)}poster.jpg`;
+// Blob's free plan allows few list calls a month, so results stay cached until something changes.
+const cachedFilms = unstable_cache(() => readAll<Film>("films/"), [FILMS], {
+  tags: [FILMS],
+  revalidate: DAY,
+});
+const cachedReports = unstable_cache(() => readAll<Report>("reports/"), [REPORTS], {
+  tags: [REPORTS],
+  revalidate: DAY,
+});
 
-async function listKeys(prefix: string) {
-  const objects: { key: string; size: number }[] = [];
-  let token: string | undefined;
-  do {
-    const page = await r2().send(
-      new ListObjectsV2Command({ Bucket: bucket(), Prefix: prefix, ContinuationToken: token }),
-    );
-    for (const item of page.Contents ?? []) {
-      objects.push({ key: item.Key as string, size: item.Size ?? 0 });
-    }
-    token = page.NextContinuationToken;
-  } while (token);
-  return objects;
+export async function getFilms() {
+  if (!isStorageConfigured()) return [] as Film[];
+  const films = await cachedFilms();
+  return [...films].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-const readJson = async <T,>(key: string) => {
-  const object = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
-  return JSON.parse(await (object.Body as { transformToString(): Promise<string> }).transformToString()) as T;
-};
-
-const writeJson = (key: string, value: unknown) =>
-  r2().send(
-    new PutObjectCommand({
-      Bucket: bucket(),
-      Key: key,
-      Body: JSON.stringify(value),
-      ContentType: "application/json",
-    }),
-  );
-
-async function loadCatalog() {
-  const objects = await listKeys("movies/");
-  const metas = objects.filter((object) => object.key.endsWith("/meta.json"));
-  const films = await Promise.all(metas.map((meta) => readJson<Film>(meta.key)));
-  films.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { films, usedBytes: objects.reduce((sum, object) => sum + object.size, 0) };
-}
-
-const cachedCatalog = unstable_cache(loadCatalog, ["catalog"], { tags: [TAG], revalidate: 300 });
-
-export async function getCatalog() {
-  if (!isStorageConfigured()) return { films: [] as Film[], usedBytes: 0 };
-  return cachedCatalog();
-}
-
-export const getFilm = async (id: string) =>
-  (await getCatalog()).films.find((film) => film.id === id);
-
-const refresh = () => revalidateTag(TAG, { expire: 0 });
+export const getFilm = async (id: string) => (await getFilms()).find((film) => film.id === id);
 
 export async function saveFilm(film: Film) {
-  await writeJson(metaKey(film.id), film);
-  refresh();
+  await writeJson(`films/${film.id}.json`, film);
+  revalidateTag(FILMS, { expire: 0 });
 }
 
 export async function deleteFilm(id: string) {
-  const objects = await listKeys(filmPrefix(id));
-  await Promise.all(
-    objects.map(({ key }) => r2().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }))),
-  );
-  refresh();
+  await remove(`films/${id}.json`);
+  revalidateTag(FILMS, { expire: 0 });
 }
 
-export async function addReport(report: Omit<Report, "key">) {
-  const key = `reports/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
-  await writeJson(key, { ...report, key });
+export async function addReport(report: Omit<Report, "id">) {
+  const id = `${Date.now()}-${randomBytes(3).toString("hex")}`;
+  await writeJson(`reports/${id}.json`, { ...report, id });
+  revalidateTag(REPORTS, { expire: 0 });
 }
 
 export async function getReports() {
-  if (!isStorageConfigured()) return [];
-  const objects = await listKeys("reports/");
-  const reports = await Promise.all(objects.map(({ key }) => readJson<Report>(key)));
-  return reports.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  if (!isStorageConfigured()) return [] as Report[];
+  const reports = await cachedReports();
+  return [...reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export const deleteReport = (key: string) =>
-  r2().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
+export async function deleteReport(id: string) {
+  await remove(`reports/${id}.json`);
+  revalidateTag(REPORTS, { expire: 0 });
+}
 
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";

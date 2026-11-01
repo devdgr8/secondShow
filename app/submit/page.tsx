@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Uploader } from "@/components/Uploader";
+import { Submit } from "@/components/Submit";
 import { isAdmin } from "@/lib/auth";
-import { getCatalog } from "@/lib/catalog";
 import { isStorageConfigured, limits } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +10,7 @@ export const metadata: Metadata = { title: "Submit a film" };
 export default async function SubmitPage() {
   const admin = await isAdmin();
   const configured = isStorageConfigured();
-  const { usedBytes } = await getCatalog();
-  const full = usedBytes >= limits.totalBytes;
-  const open = configured && !full && (admin || limits.publicUploadsOpen);
+  const open = configured && (admin || limits.publicSubmissionsOpen);
 
   return (
     <main className="booth">
@@ -21,18 +18,16 @@ export default async function SubmitPage() {
       <h1>{admin ? "Thread a new film." : "Send us your film."}</h1>
       <p className="lede">
         {admin
-          ? "You are signed in, so this film goes live as soon as it finishes uploading."
-          : "Every submission is watched before it goes on the board. Large files are fine: they upload in pieces and survive a dropped connection."}
+          ? "You are signed in, so this film goes live as soon as you publish it."
+          : "Films are hosted on Internet Archive and shown here. Every submission is watched before it goes on the board."}
       </p>
       {open ? (
-        <Uploader admin={admin} />
+        <Submit admin={admin} />
       ) : (
         <p className="notice">
-          {!configured
-            ? "Storage is not connected yet. Follow SETUP.md to finish setting up the site."
-            : full
-              ? "The cinema's storage is full right now."
-              : "Submissions are closed right now."}
+          {configured
+            ? "Submissions are closed right now."
+            : "The catalogue is not connected yet. Follow SETUP.md to finish setting up the site."}
         </p>
       )}
       {!admin && (

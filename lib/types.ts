@@ -32,18 +32,17 @@ export type FilmDetails = {
 };
 
 export type Film = FilmDetails & {
+  /** The film's Internet Archive identifier. */
   id: string;
   status: "pending" | "live";
-  videoKey: string;
-  hasPoster: boolean;
-  contentType: string;
-  size: number;
+  /** Playable files on Internet Archive, best first. */
+  files: string[];
   runtimeSec: number | null;
   createdAt: string;
 };
 
 export type Report = {
-  key: string;
+  id: string;
   film: string;
   name: string;
   email: string;

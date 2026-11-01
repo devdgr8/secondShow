@@ -1,5 +1,5 @@
 # secondShow
 
-Second Show is a free streaming site for small, public-domain and openly licensed films. It runs on Vercel, stores films in Cloudflare R2, and sends uploads straight from the browser to storage, so large films work on free plans.
+Second Show is a free streaming site for small, public-domain and openly licensed films. Films are hosted on Internet Archive, the site runs on Vercel's free plan, and no payment card is needed anywhere.
 
 See [SETUP.md](SETUP.md) to put it online.

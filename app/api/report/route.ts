@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { addReport, getReports } from "@/lib/catalog";
-import { isStorageConfigured } from "@/lib/config";
+import { isStorageConfigured, limits } from "@/lib/config";
 
-const MAX_OPEN_REPORTS = 200;
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
@@ -21,7 +20,7 @@ export async function POST(request: Request) {
   if (!report.film || !report.name || !report.claim || !/^\S+@\S+\.\S+$/.test(report.email)) {
     return NextResponse.json({ error: "Please fill in every field." }, { status: 400 });
   }
-  if ((await getReports()).length >= MAX_OPEN_REPORTS) {
+  if ((await getReports()).length >= limits.maxOpenReports) {
     return NextResponse.json({ error: "Please try again later." }, { status: 429 });
   }
   await addReport(report);

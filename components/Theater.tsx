@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fileUrl, posterUrl } from "@/lib/archive-urls";
 
-export function Theater({ id, title, poster }: { id: string; title: string; poster: boolean }) {
+export function Theater({ id, title, files }: { id: string; title: string; files: string[] }) {
   const [dimmed, setDimmed] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -21,12 +22,19 @@ export function Theater({ id, title, poster }: { id: string; title: string; post
             controls
             playsInline
             preload="metadata"
-            poster={poster ? `/api/film/${id}/poster` : undefined}
+            poster={posterUrl(id)}
             aria-label={title}
-            src={`/api/film/${id}/stream`}
             onPlay={() => setDimmed(true)}
-            onError={() => setFailed(true)}
-          />
+          >
+            {/* The browser moves to the next source by itself, so only the last failure counts. */}
+            {files.map((file, index) => (
+              <source
+                key={file}
+                src={fileUrl(id, file)}
+                onError={index === files.length - 1 ? () => setFailed(true) : undefined}
+              />
+            ))}
+          </video>
         )}
       </div>
       <button className="lights" aria-pressed={dimmed} onClick={() => setDimmed(!dimmed)}>

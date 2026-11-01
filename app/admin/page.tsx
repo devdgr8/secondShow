@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { AdminLogin, AdminPanel } from "@/components/Admin";
 import { isAdmin } from "@/lib/auth";
-import { getCatalog, getReports } from "@/lib/catalog";
-import { limits } from "@/lib/config";
+import { getFilms, getReports } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Booth", robots: { index: false } };
@@ -18,12 +17,12 @@ export default async function AdminPage() {
     );
   }
 
-  const [{ films, usedBytes }, reports] = await Promise.all([getCatalog(), getReports()]);
+  const [films, reports] = await Promise.all([getFilms(), getReports()]);
   return (
     <main className="booth">
       <p className="eyebrow">Staff only</p>
       <h1>The booth.</h1>
-      <AdminPanel films={films} reports={reports} usedBytes={usedBytes} totalBytes={limits.totalBytes} />
+      <AdminPanel films={films} reports={reports} />
     </main>
   );
 }

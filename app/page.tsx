@@ -2,15 +2,14 @@ import Link from "next/link";
 import { FilmGrid } from "@/components/FilmGrid";
 import { Marquee } from "@/components/Marquee";
 import { Poster } from "@/components/Poster";
-import { getCatalog } from "@/lib/catalog";
+import { getFilms } from "@/lib/catalog";
 import { runtime } from "@/lib/format";
 import { LICENSES } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { films } = await getCatalog();
-  const live = films.filter((film) => film.status === "live");
+  const live = (await getFilms()).filter((film) => film.status === "live");
   const [tonight] = live;
 
   return (

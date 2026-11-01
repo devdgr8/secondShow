@@ -3,25 +3,20 @@ export const SITE = {
   tagline: "Small films. Late nights. Free admission.",
 };
 
-const GB = 1024 ** 3;
 const num = (value: string | undefined, fallback: number) => {
   const parsed = Number(value);
   return value && Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
 export const limits = {
-  totalBytes: num(process.env.MAX_TOTAL_GB, 9.5) * GB,
-  publicFileBytes: num(process.env.MAX_PUBLIC_FILE_GB, 4) * GB,
   maxPending: num(process.env.MAX_PENDING, 10),
-  maxActivePublicUploads: num(process.env.MAX_ACTIVE_PUBLIC_UPLOADS, 5),
-  publicUploadsOpen: process.env.PUBLIC_UPLOADS !== "closed",
+  maxOpenReports: num(process.env.MAX_OPEN_REPORTS, 50),
+  publicSubmissionsOpen: process.env.PUBLIC_UPLOADS !== "closed",
 };
 
+export const usesBlob = () =>
+  Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+
+/** Local development keeps the catalogue in a folder, so it needs no Blob store. */
 export const isStorageConfigured = () =>
-  Boolean(
-    (process.env.R2_ACCOUNT_ID || process.env.R2_ENDPOINT) &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET &&
-      process.env.SESSION_SECRET,
-  );
+  Boolean(process.env.SESSION_SECRET) && (usesBlob() || process.env.NODE_ENV !== "production");
