@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Theater } from "@/components/Theater";
+import { listSubtitles } from "@/lib/archive";
 import { archivePage } from "@/lib/archive-urls";
 import { isAdmin } from "@/lib/auth";
 import { getFilm } from "@/lib/catalog";
@@ -22,10 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function FilmPage({ params }: Props) {
   const film = await getFilm((await params).id);
   if (!film || (film.status !== "live" && !(await isAdmin()))) notFound();
+  const subtitles = await listSubtitles(film.id);
 
   return (
     <main className="film-page">
-      <Theater id={film.id} title={film.title} files={film.files} />
+      <Theater id={film.id} title={film.title} files={film.files} subtitles={subtitles} />
       <section className="film-notes">
         <div>
           {film.status !== "live" && <p className="pending-flag">Waiting for review</p>}
@@ -46,6 +48,9 @@ export default async function FilmPage({ params }: Props) {
             <a href={film.sourceUrl} rel="noopener nofollow ugc" target="_blank">
               Rights source
             </a>
+          )}
+          {subtitles.length > 0 && (
+            <span>Subtitles: {subtitles.map((subtitle) => subtitle.label).join(", ")}</span>
           )}
           {film.submittedBy && <span>Submitted by {film.submittedBy}</span>}
           <Link href={`/takedown?film=${film.id}`}>Report this film</Link>

@@ -36,6 +36,38 @@ Every later push to `main` updates the site. Keep your password and secret in Ve
 
 If the site says there is no browser-ready version yet, Internet Archive is still converting the file. This can take from minutes to a day. Try the same link again later.
 
+## Add subtitles
+
+The player shows a subtitles button whenever the film's Internet Archive page holds a `.srt` or `.vtt` file. If you already have one, skip to step 4. Otherwise your Mac can write one for free. This needs an Apple Silicon Mac and works on any film you have the rights to.
+
+1. Install the tools once:
+
+```bash
+brew install ffmpeg
+```
+
+```bash
+python3 -m venv ~/whisper
+```
+
+```bash
+~/whisper/bin/pip install mlx-whisper
+```
+
+2. Generate the file. Change `film.mp4` to your file and `en` to the language spoken in the film. The first run downloads the model.
+
+```bash
+~/whisper/bin/mlx_whisper film.mp4 --model mlx-community/whisper-small-mlx --language en --output-format srt --output-dir subtitles
+```
+
+For English subtitles on a film in another language, add `--task translate`.
+
+3. Read through `subtitles/film.srt`, because automatic subtitles make mistakes, especially over music or fast overlapping speech. A 2-hour film takes about 25 minutes on an M2 with this model. Use `whisper-base-mlx` for about 3 minutes with lower accuracy.
+
+4. Rename the file to end in its language code, such as `film.en.srt` or `film.hi.srt`. On the film's Internet Archive page, choose to add files, then upload it.
+
+5. Wait a few minutes for Archive to process it, then refresh your film page. Subtitles can take up to 10 minutes more to appear, because the site caches the list. Viewers turn them on with the CC button in the player.
+
 ## How other people add films
 
 They upload to Internet Archive themselves, then paste their link at `/submit`. Their film waits in `/admin` until you publish it.

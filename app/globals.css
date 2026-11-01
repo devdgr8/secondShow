@@ -413,6 +413,12 @@ h2 {
   background: #000;
 }
 
+.screen video::cue {
+  background: rgba(16, 11, 9, 0.72);
+  color: var(--cream);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
 .screen-error {
   padding: 96px 16px;
   text-align: center;

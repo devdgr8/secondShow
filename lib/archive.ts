@@ -2,6 +2,7 @@ import type { License } from "./types";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 const MAX_SOURCES = 2;
+export const SUBTITLE_CACHE_SECONDS = 600;
 
 type ArchiveFile = { name: string; size?: string; length?: string; format?: string };
 type ArchiveItem = {
@@ -66,6 +67,43 @@ function playableFiles(files: ArchiveFile[]) {
   return files
     .filter((file) => /\.(mp4|m4v|webm)$/i.test(file.name))
     .sort((a, b) => Number(b.size ?? 0) - Number(a.size ?? 0));
+}
+
+export type Subtitle = { file: string; language: string; label: string };
+
+/** Reads a language code from the end of a name, as in `film.hi.srt`. */
+function subtitleInfo(file: string): Subtitle {
+  const name = file.replace(/\.asr(?=\.(srt|vtt)$)/i, "");
+  const code = name.match(/[._-]([a-z]{2,3})\.(srt|vtt)$/i)?.[1].toLowerCase();
+  let label: string | undefined;
+  try {
+    const language = code && new Intl.DisplayNames(["en"], { type: "language", fallback: "none" }).of(code);
+    label = language || undefined;
+  } catch {}
+  return label && code
+    ? { file, language: code, label }
+    : { file, language: "en", label: "Subtitles" };
+}
+
+/** Finds subtitle files beside a film. A failed lookup only hides the subtitles. */
+export async function listSubtitles(id: string): Promise<Subtitle[]> {
+  try {
+    const response = await fetch(`https://archive.org/metadata/${id}/files`, {
+      signal: AbortSignal.timeout(4_000),
+      next: { revalidate: SUBTITLE_CACHE_SECONDS },
+    });
+    const { result } = (await response.json()) as { result?: ArchiveFile[] };
+    // Archive can hold the same subtitles as both SRT and VTT, so each label appears once.
+    const byLabel = new Map<string, Subtitle>();
+    for (const { name } of result ?? []) {
+      if (!/\.(srt|vtt)$/i.test(name)) continue;
+      const subtitle = subtitleInfo(name);
+      if (!byLabel.has(subtitle.label) || /\.vtt$/i.test(name)) byLabel.set(subtitle.label, subtitle);
+    }
+    return [...byLabel.values()].sort((a, b) => a.label.localeCompare(b.label));
+  } catch {
+    return [];
+  }
 }
 
 export async function lookUpFilm(id: string): Promise<Lookup> {

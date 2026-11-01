@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { Subtitle } from "@/lib/archive";
 import { fileUrl, posterUrl } from "@/lib/archive-urls";
 
-export function Theater({ id, title, files }: { id: string; title: string; files: string[] }) {
+type Props = { id: string; title: string; files: string[]; subtitles: Subtitle[] };
+
+export function Theater({ id, title, files, subtitles }: Props) {
   const [dimmed, setDimmed] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -32,6 +35,15 @@ export function Theater({ id, title, files }: { id: string; title: string; files
                 key={file}
                 src={fileUrl(id, file)}
                 onError={index === files.length - 1 ? () => setFailed(true) : undefined}
+              />
+            ))}
+            {subtitles.map((subtitle) => (
+              <track
+                key={subtitle.file}
+                kind="subtitles"
+                src={`/api/film/${id}/subtitles?file=${encodeURIComponent(subtitle.file)}`}
+                srcLang={subtitle.language}
+                label={subtitle.label}
               />
             ))}
           </video>
