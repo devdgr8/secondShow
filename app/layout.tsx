@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <nav aria-label="Main">
             <Link href="/#now-showing">Now showing</Link>
+            <Link href="/changeover">Play</Link>
             <Link href="/submit" className="nav-ticket">
               Submit a film
             </Link>
